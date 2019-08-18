@@ -171,6 +171,23 @@ export default class StorageClass {
     }
 
     /**
+    * Get a presigned URL of the file
+    *
+    * @param {String} key - key of the object
+    * @param {Object} [config] - { level : private|protected|public }
+    * @return - presigned url
+    */
+    public syncGet(key: string, config?): String {
+        const { provider = DEFAULT_PROVIDER } = config || {};
+        const prov = this._pluggables.find(pluggable => pluggable.getProviderName() === provider);
+        if (prov === undefined) {
+            logger.debug('No plugin found with providerName', provider);
+            throw new Error('No plugin found in Storage for the provider');
+        }
+        return prov.syncGet(key, config);
+    }
+
+    /**
      * Put a file in storage bucket specified to configure method
      * @param {String} key - key of the object
      * @param {Object} object - File to be put in bucket

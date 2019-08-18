@@ -171,6 +171,54 @@ export default class AWSS3Provider implements StorageProvider{
     }
 
     /**
+    * Get a presigned URL of the file
+    *
+    * @param {String} key - key of the object
+    * @param {Object} [config] - { level : private|protected|public }
+    * @return - Amazon S3 presigned URL on success
+    */
+    public syncGet(key: string, config?): String {
+        // const credentialsOK = await this._ensureCredentials();
+        // if (!credentialsOK) { return Promise.reject('No credentials'); }
+
+        const opt = Object.assign({}, this._config, config);
+        const { bucket, region, credentials, level, download, track, expires } = opt;
+        const prefix = this._prefix(opt);
+        const final_key = prefix + key;
+        const s3 = this._createS3(opt);
+        logger.debug('get ' + key + ' from ' + final_key);
+
+        const params: any = {
+            Bucket: bucket,
+            Key: final_key
+        };
+
+        if (expires) { params.Expires = expires; }
+
+        try {
+            const url = s3.getSignedUrl('getObject', params);
+            dispatchStorageEvent(
+                track,
+                'getSignedUrl',
+                { method: 'get', result: 'success' },
+                null,
+                `Signed URL: ${url}`
+            );
+            return url;
+        } catch (e) {
+            logger.warn('get signed url error', e);
+            dispatchStorageEvent(
+                track,
+                'getSignedUrl',
+                { method: 'get', result: 'failed' },
+                null,
+                `Could not get a signed URL for ${key}`
+            );
+            throw new Error(e);
+        }
+    }
+
+    /**
      * Put a file in S3 bucket specified to configure method
      * @param {String} key - key of the object
      * @param {Object} object - File to be put in Amazon S3 bucket
